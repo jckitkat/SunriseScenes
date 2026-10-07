@@ -24,11 +24,12 @@ campaign with it, starting with Homecoming (`mission_towerfall`).
 | `jckitkat/Sunrise` (fork of `stanuwu/Sunrise`) | the mod itself, C++ | branch `scene-debug-tools`: one commit on top of upstream `fbfcb1c` |
 | `jckitkat/SunriseMissions` (fork of `stanuwu/SunriseMissions`) | mission scripts | branch `towerfall-mission-mode`: one commit on top of `f317a32` |
 
-If a branch named above is missing from GitHub, the push did not happen before the machine
-was retired; see "If the push never happened" at the end.
+All three were pushed on 2026-10-06. Neither fork's default branch was touched; the work is
+only on the branches named.
 
-All three were publicly visible on that date, although the author wanted them private. A fork
-of a public repository cannot be made private on GitHub.
+All three were publicly visible on that date, although the author had asked for private
+repositories. A fork of a public repository cannot be made private on GitHub; SunriseScenes
+can be, in its settings.
 
 ## Setting up on Linux
 
@@ -195,16 +196,3 @@ These are observations from the session, not rules the author stated.
 - `sunrise.log` from the test runs (the findings are in docs/SUNRISE.md).
 - The GDC talk PDF the design follows (the author has it; the slides are also on GDC Vault).
 - The packaged app in `release/` (rebuild with `npm run dist`).
-
-## If the push never happened
-
-On 2026-10-06 the old machine had no Git sign-in, so the commits were made locally and left
-for the author to push:
-
-- `Desktop/SunriseScenes` — this repository, committed on `main`.
-- `Desktop/SunrisePush/Sunrise` — clone of the fork, branch `scene-debug-tools`.
-- `Desktop/SunrisePush/SunriseMissions` — clone of the fork, branch `towerfall-mission-mode`.
-
-In each: `git push -u origin <branch>`. If those folders are gone, the Sunrise changes can be
-rewritten from the description above (about 450 lines), and the mission from the author's
-copy of `mission_towerfall/`.
