@@ -1,0 +1,5 @@
+# One set of line endings everywhere: the tests compare generated Lua with files in the repository.
+* text=auto eol=lf
+*.jpg binary
+*.png binary
+*.ico binary

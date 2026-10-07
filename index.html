@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The app loads nothing from the network: only its own files. (ws: is the dev server's reload channel.) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws:">
+
+<title>Sunrise Scenes</title>
+</head>
+<body>
+<header>
+  <h1><span>Sunrise</span> Scenes</h1>
+  <span class="seg"><button id="v-missions" hidden>Missions</button><button id="v-editor">Editor</button><button id="v-inputs">Inputs</button><button id="v-nodes">Nodes</button></span>
+  <span id="mission-bar" hidden><span id="mission-name"></span><button id="b-mission-save" title="Write the script (and the drawing beside it) into the scripts folder">Save to Sunrise</button></span>
+  <label>Mode <select id="m-mode" title="Free scene: draw any flow, exported as a lib.flow graph. Campaign: a linear story mission, exported as a lib.campaign content table like the Red War drafts. Mission: a flow of steps plus scenes on their own tabs, exported as one self-contained script. Freeroam: an open-world destination, exported as a lib.freeroam zone table.">
+    <option value="scene">Free scene</option><option value="campaign">Campaign</option><option value="mission">Mission</option><option value="freeroam">Freeroam</option></select></label>
+  <label>Activity <input type="text" id="m-activity" placeholder="adventure_ginger" title="The activity's internal name. The script folder and file are named after it."></label>
+  <label>Scenario <input type="text" id="m-scenario" placeholder="ADVENTURE_GINGER" title="The upper-case key in Sunrise/sdk/lua/missions.lua"></label>
+  <label id="l-initial">Spawn in <select id="m-initial" title="initial_state: the state the player spawns into"></select></label>
+  <span class="sp"></span>
+  <button id="b-help">?</button>
+  <select id="b-example" title="Load an example. It replaces what is open."><option value="">Examples…</option><option value="gate">Gate mission (all modes)</option><option value="zavala">Zavala's plaza, from the GDC talk</option></select>
+  <button id="b-new">New</button>
+  <button id="b-open">Open…</button>
+  <button id="b-save">Save scene</button>
+  <input type="file" id="f-open" accept=".json" hidden>
+  <input type="file" id="f-sdk" accept=".lua" hidden>
+  <input type="file" id="f-pack" accept=".json" hidden>
+</header>
+<div id="help" hidden></div>
+<div id="notes" hidden></div>
+
+<div id="missions-view" class="screen" hidden>
+  <div>
+    <h2>Missions <span class="sp"></span><button id="b-root-refresh">Refresh</button></h2>
+    <div class="bar"><input type="text" id="mission-search" placeholder="find a mission or scenario…"><select id="mission-kind"></select></div>
+    <div id="mission-list" class="fill"></div>
+  </div>
+  <div>
+    <h2>Scripts folder</h2>
+    <div class="fill ref">
+      <p id="root-path"></p>
+      <p id="root-kind"></p>
+      <p><button id="b-root-choose">Choose folder…</button> <button id="b-root-find" title="Look where the Sunrise launcher says the game is installed">Find my Sunrise install</button></p>
+      <p>Choose your Destiny 2 folder to work on the scripts Sunrise loads, or any other folder of scripts, such as a copy of the missions repository.</p>
+      <div id="sdk-row" hidden>
+        <h4>SDK keys</h4>
+        <p id="sdk-path"></p>
+        <p><button id="b-sdk-choose">Choose SDK folder…</button> <button id="b-sdk-clear">Use none</button></p>
+      </div>
+      <h4>What opening a mission does</h4>
+      <p><b>Drawn here</b> — saved from this app before. Opens exactly as it was left.</p>
+      <p><b>Campaign script</b> — hand-written with lib.campaign, like the Red War drafts. It is read into the canvas; anything that could not be carried over is listed for you.</p>
+      <p><b>Freeroam script</b> — an open-world destination written with lib.freeroam. Its zones, events and Lost Sectors are read from content.lua into the canvas.</p>
+      <p><b>Lua script</b> — hand-written in a shape the canvas cannot draw (social spaces, the raid, scripts coded straight against the API). Every Lua file in its folder opens in a text editor with syntax checks.</p>
+      <p><b>Shared Lua</b> — a folder of helpers other scripts load, such as lib. Opens in the text editor.</p>
+      <p><b>No script yet</b> — an activity from the SDK with nothing written. Opens an empty canvas.</p>
+      <p>Opening a mission also loads the keys of its scenario's generated SDK module, ready on the <b>Inputs</b> screen.</p>
+      <h4>Saving</h4>
+      <p>The save button in the top bar (<b>Save to Sunrise</b>, or <b>Save script</b> for a plain folder) writes <code>&lt;name&gt;/&lt;name&gt;.lua</code> and, for a drawing, <code>&lt;name&gt;.scene.json</code> beside it. The first time it replaces a hand-written script, the old one is kept as <code>&lt;name&gt;.lua.bak</code>.</p>
+      <p>The Sunrise launcher updates the scripts folder and may put its own copies back. Keep your own copy of anything you care about (<b>Save scene</b> in the top bar).</p>
+    </div>
+  </div>
+</div>
+
+<div id="text-view" hidden>
+  <h2>Lua files <span id="text-files"></span><span class="sp"></span><span id="text-path"></span></h2>
+  <textarea id="text-area" spellcheck="false"></textarea>
+  <ul id="text-problems" class="lint"></ul>
+</div>
+
+<div id="editor">
+  <aside>
+    <section>
+      <h2>Inputs <span class="sp"></span><button id="b-manage" title="Open the inputs screen to add, rename and import inputs">Manage…</button></h2>
+      <input type="text" id="side-search" placeholder="find an input…">
+      <div class="scroll" id="side"></div>
+    </section>
+    <section>
+      <h2>Nodes <span class="sp"></span><button id="b-custom" title="Open the nodes screen to write your own node types">Custom…</button></h2>
+      <div class="scroll" id="palette"></div>
+    </section>
+  </aside>
+  <main id="canvas">
+    <div id="tabs" hidden></div>
+    <div id="zoom">
+      <button id="z-out" title="Zoom out">−</button><span id="z-pct">100%</span><button id="z-in" title="Zoom in">+</button><button id="z-fit" title="Fit the whole scene in view">Fit</button>
+      <button id="b-prefab" title="Fold the selected node and everything stacked under it into one reusable node" hidden>Make prefab</button>
+      <button id="b-unpack" title="Replace this prefab with the steps it stands for" hidden>Unpack</button>
+      <button id="b-copy-nodes" title="Copy the highlighted nodes (Ctrl+C)" hidden>Copy</button>
+      <button id="b-paste-nodes" title="Paste the copied nodes onto this canvas (Ctrl+V)" hidden>Paste</button>
+    </div>
+    <div id="ws"><svg id="wires"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e8eaf0"/></marker></defs><g id="wg"></g></svg></div>
+  </main>
+  <section id="out">
+    <h2>Lua <span class="sp"></span><button id="b-copy">Copy</button><button id="b-dl">Download .lua</button></h2>
+    <div id="path"></div>
+    <ul id="problems"></ul>
+    <pre id="lua"></pre>
+  </section>
+</div>
+
+<div id="inputs-view" class="screen" hidden>
+  <div>
+    <h2>Inputs <span class="sp"></span><span id="iv-add"></span></h2>
+    <div class="bar"><input type="text" id="iv-search" placeholder="find by name or key…"></div>
+    <div id="in-table" class="fill"></div>
+  </div>
+  <div>
+    <h2>From the SDK <span class="sp"></span><button id="b-sdk" title="Load a generated mission module: Sunrise/sdk/lua/missions/<name>.lua">Load mission module…</button></h2>
+    <div class="bar"><input type="text" id="sdk-search" placeholder="find a key…"><select id="sdk-kind"></select></div>
+    <div id="sdk-list" class="fill"></div>
+  </div>
+</div>
+
+<div id="nodes-view" class="screen" hidden>
+  <div>
+    <h2>Custom nodes <span class="sp"></span><button id="b-new-action">+ Action</button><button id="b-new-wait">+ Wait</button><button id="b-pack-in">Import pack…</button><button id="b-pack-out">Export pack</button></h2>
+    <div id="def-list"></div>
+    <div id="def-edit" class="fill"></div>
+  </div>
+  <div>
+    <h2>Reference</h2>
+    <div id="def-help" class="fill"></div>
+  </div>
+</div>
+<datalist id="keys"></datalist>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
